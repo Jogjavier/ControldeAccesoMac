@@ -10,7 +10,7 @@ root.title("Laboratorio de MAC")
 root.geometry("600x400")
 root.configure(bg='#f5e0e0')
 
-# Logo en la esquina superior izquierda
+# Logo 
 logo = tk.PhotoImage(file="logo.png")
 logo_label = tk.Label(root, image=logo, bg='#f5e0e0')
 logo_label.place(x=10, y=10)
