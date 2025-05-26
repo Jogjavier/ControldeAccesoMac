@@ -1,38 +1,30 @@
-import json
+from pirc522 import RFID
 import signal
-import RPi.GPIO as GPIO
-from mfrc522 import SimpleMFRC522
+import time
 
-# Inicializar lector
-reader = SimpleMFRC522()
-
-# Captura Ctrl+C
-continue_reading = True
+rdr = RFID()         # Inicializa lector RFID
+util = rdr.util()
+util.debug = False   # Opcional: activa debug si necesitas
 
 def end_read(signal, frame):
-    global continue_reading
-    print("\n[INFO] Lectura detenida con Ctrl+C")
-    continue_reading = False
-    GPIO.cleanup()
+    print("\nSaliendo...")
+    rdr.cleanup()
+    exit()
 
+# Captura Ctrl+C para salir con gracia
 signal.signal(signal.SIGINT, end_read)
 
-print("[INFO] Escanea una tarjeta RFID...")
+print("Acerque una tarjeta RFID al lector...")
 
-while continue_reading:
-    try:
-        id, text = reader.read()
-        print(f"[INFO] UID leído: {id}")
+while True:
+    rdr.wait_for_tag()
+    (error, tag_type) = rdr.request()
+    
+    if not error:
+        print("Tarjeta detectada")
+        (error, uid) = rdr.anticoll()
 
-        # Guardar en JSON
-        data = {"uid": id}
-
-        with open("rfid_log.json", "w") as f:
-            json.dump(data, f, indent=4)
-
-        print("[INFO] UID guardado en rfid_log.json\n")
-
-    except Exception as e:
-        print(f"[ERROR] {e}")
-        GPIO.cleanup()
-        break
+        if not error:
+            print("UID de la tarjeta:", uid)
+            print("Hex UID:", ''.join([format(x, '02X') for x in uid]))
+            time.sleep(2)
