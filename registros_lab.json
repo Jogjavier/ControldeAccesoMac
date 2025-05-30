@@ -1,0 +1,15 @@
+[
+  {
+    "rfid": "2222",
+    "total": 22,
+    "materia": "Programación Web",
+    "grupo": "1A-INF",
+    "software": "Office",
+    "proposito": "Práctica",
+    "observaciones": "rgeg",
+    "fecha": "29/05/2025",
+    "hora_entrada": "22:16",
+    "hora_salida": "22:16",
+    "estado": "Completado"
+  }
+]
