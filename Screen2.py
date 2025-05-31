@@ -10,8 +10,9 @@ from datetime import datetime
 # Importar librerías del RFID
 RFID_AVAILABLE = False
 try:
-    from mfrc522 import SimpleMFRC522
+    from mfrc522 import SimpleMFRC522, MFRC522
     import RPi.GPIO as GPIO
+    import spidev
     RFID_AVAILABLE = True
     print("Librerías RFID cargadas correctamente.")
 except ImportError:
@@ -32,9 +33,25 @@ class RFIDReaderGUI:
         # Inicializar RFID si está disponible
         if RFID_AVAILABLE:
             try:
+                # Configurar pines específicos para tu conexión
+                # SDA-26, SCK-23, MOSI-19, MISO-21, GND-20, RST-22, 3.3v-17
+                
+                # Configurar SPI
+                GPIO.setmode(GPIO.BOARD)
+                
+                # Crear instancia del lector con pin RST personalizado
                 self.reader = SimpleMFRC522()
+                
+                # Si necesitas configurar pines específicos, puedes usar MFRC522 directamente
+                # self.mfrc522_reader = MFRC522(rst_pin=22, cs_pin=26)
+                
                 print("Lector RFID inicializado correctamente.")
+                print("Configuración de pines:")
+                print("SDA: Pin 26, SCK: Pin 23, MOSI: Pin 19")
+                print("MISO: Pin 21, GND: Pin 20, RST: Pin 22, 3.3V: Pin 17")
+                
             except Exception as e:
+                print(f"Error al inicializar RFID: {e}")
                 messagebox.showerror("Error", f"Error al inicializar RFID: {e}")
                 self.reader = None
         
@@ -154,6 +171,8 @@ class RFIDReaderGUI:
         info_frame.pack(pady=5)
         
         info_text = "💡 Acerca una tarjeta RFID al lector RC522"
+        connection_info = "🔌 SDA-26, SCK-23, MOSI-19, MISO-21, GND-20, RST-22, 3.3V-17"
+        
         if not RFID_AVAILABLE:
             info_text = "⚠️ Modo simulación - Librerías RFID no disponibles"
             
@@ -162,6 +181,14 @@ class RFIDReaderGUI:
             text=info_text,
             font=("Arial", 9),
             fg='#bdc3c7',
+            bg='#2c3e50'
+        ).pack()
+        
+        tk.Label(
+            info_frame,
+            text=connection_info,
+            font=("Arial", 8),
+            fg='#95a5a6',
             bg='#2c3e50'
         ).pack()
         
