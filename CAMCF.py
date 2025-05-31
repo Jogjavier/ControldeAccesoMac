@@ -19,9 +19,9 @@ class RegistroApp:
         
         # Base de datos simulada de docentes (RFID: Nombre)
         self.docentes = {
-            "123456789": "Prof. Juan Pérez",
-            "987654321": "Prof. María García",
-            "456123789": "Prof. Carlos López"
+            "1234": "Prof. Juan Perez",
+            "9876": "Prof. María Garcia",
+            "4567": "Prof. Carlos Lopez"
         }
         
         try:
@@ -56,7 +56,7 @@ class RegistroApp:
                 threading.Event().wait(0.1)
 
     def mostrar_nombre_docente(self, id_rfid):
-        """Muestra el nombre del docente después de leer el RFID"""
+        """Muestra el nombre del docente y activa el botón Continuar"""
         if hasattr(self, 'rfid_entry'):
             self.rfid_entry.delete(0, tk.END)
             self.rfid_entry.insert(0, id_rfid)
@@ -71,6 +71,14 @@ class RegistroApp:
                 self.nombre_label = tk.Label(self.root, text=f"Docente: {nombre}", 
                                            font=("Arial", 14), bg="#f5e0e0")
                 self.nombre_label.pack(pady=10)
+            
+            # Mostrar botón Continuar si no está visible
+            if not hasattr(self, 'btn_continuar'):
+                self.btn_continuar = tk.Button(self.root, text="Continuar", 
+                                             font=("Arial", 16, "bold"), 
+                                             fg="white", bg="#1d127a", 
+                                             command=self.validar_rfid)
+                self.btn_continuar.pack(pady=20)
             
             # Deshabilitar la lectura automática
             self.leyendo_rfid = False
@@ -92,12 +100,12 @@ class RegistroApp:
         self.rfid_entry = tk.Entry(self.root, font=("Arial", 18), justify='center')
         self.rfid_entry.pack(pady=20)
         
-        # Botón de modo manual (opcional)
+        # Botón de modo manual
         tk.Button(self.root, text="Modo Manual", font=("Arial", 12), 
                  fg="white", bg="gray", command=self.modo_manual).pack(pady=10)
 
     def modo_manual(self):
-        """Permite ingresar el RFID manualmente"""
+        """Permite ingresar el RFID y nombre manualmente"""
         self.leyendo_rfid = False
         self.rfid_entry.config(state='normal')
         self.rfid_entry.focus()
