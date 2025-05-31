@@ -7,11 +7,13 @@ import threading
 import time
 from datetime import datetime
 
-# Importar librerías del RFID (descomenta cuando tengas las librerías instaladas)
+# Importar librerías del RFID
+RFID_AVAILABLE = False
 try:
     from mfrc522 import SimpleMFRC522
     import RPi.GPIO as GPIO
     RFID_AVAILABLE = True
+    print("Librerías RFID cargadas correctamente.")
 except ImportError:
     RFID_AVAILABLE = False
     print("Librerías RFID no disponibles. Ejecutándose en modo simulación.")
@@ -31,9 +33,10 @@ class RFIDReaderGUI:
         if RFID_AVAILABLE:
             try:
                 self.reader = SimpleMFRC522()
+                print("Lector RFID inicializado correctamente.")
             except Exception as e:
                 messagebox.showerror("Error", f"Error al inicializar RFID: {e}")
-                RFID_AVAILABLE = False
+                self.reader = None
         
         self.setup_ui()
         
