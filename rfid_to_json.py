@@ -1,30 +1,31 @@
-from pirc522 import RFID
-import signal
-import time
+from mfrc522 import SimpleMFRC522
 
-rdr = RFID()         # Inicializa lector RFID
-util = rdr.util()
-util.debug = False   # Opcional: activa debug si necesitas
+reader = SimpleMFRC522()
 
-def end_read(signal, frame):
-    print("\nSaliendo...")
-    rdr.cleanup()
-    exit()
+try:
+    print("Acerca la tarjeta para leer su contenido actual...")
+    id, texto_actual = reader.read()
+    print(f"\n📇 ID de tarjeta: {id}")
+    print(f"📄 Contenido actual: '{texto_actual.strip()}'")
 
-# Captura Ctrl+C para salir con gracia
-signal.signal(signal.SIGINT, end_read)
+    confirmar_borrado = input("\n¿Deseas borrar este contenido? (s/n): ").lower()
 
-print("Acerque una tarjeta RFID al lector...")
+    if confirmar_borrado == 's':
+        reader.write("")  # Borra escribiendo cadena vacía
+        print("✅ Contenido borrado.")
 
-while True:
-    rdr.wait_for_tag()
-    (error, tag_type) = rdr.request()
-    
-    if not error:
-        print("Tarjeta detectada")
-        (error, uid) = rdr.anticoll()
+        escribir_nuevo = input("\n¿Deseas escribir un nuevo texto? (s/n): ").lower()
+        if escribir_nuevo == 's':
+            nuevo_texto = input("Escribe el nuevo texto para la tarjeta: ")
+            print("Acerca la tarjeta nuevamente para escribir...")
+            reader.write(nuevo_texto)
+            print("✍️ Texto escrito correctamente.")
+        else:
+            print("ℹ️ No se escribió nuevo texto.")
+    else:
+        print("❌ Borrado cancelado.")
 
-        if not error:
-            print("UID de la tarjeta:", uid)
-            print("Hex UID:", ''.join([format(x, '02X') for x in uid]))
-            time.sleep(2)
+except Exception as e:
+    print("⚠️ Error:", e)
+finally:
+    reader.cleanup()
