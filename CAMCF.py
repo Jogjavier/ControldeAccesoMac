@@ -27,6 +27,7 @@ class RegistroApp:
 
         self.rfid_label = tk.Label(self.root, text="Esperando tarjeta...", font=("Arial", 18), fg="black", bg="#f5e0e0")
         self.rfid_label.pack(pady=20)
+        tk.Button(self.root, text="Continuar", font=("Arial", 16, "bold"), fg="white", bg="#1d127a", command=self.validar_rfid).place(x=330, y=350)
 
         # Iniciar el hilo de lectura RFID
         threading.Thread(target=self.leer_rfid, daemon=True).start()
@@ -68,7 +69,8 @@ class RegistroApp:
         self.software_combobox['values'] = ["Plataforma", "Office", "Internet", "AUTOCAD", "Teams"]
         self.software_combobox.place(x=540, y=230)
 
-        tk.Button(self.root, text="Continuar", font=("Arial", 14, "bold"), fg="white", bg="#1d127a", padx=20, pady=5, command=self.validar_datos).place(x=350, y=450)
+        tk.Button(self.root, text="Continuar", font=("Arial", 14, "bold"), fg="white", bg="#1d127a", padx=20, pady=5, command=self.validar_datos).place(x=330, y=300)
+
 
     def validar_datos(self):
         if not self.total_entry.get().isdigit() or not self.materia_combobox.get() or not self.grupo_combobox.get() or not self.software_combobox.get():
@@ -100,9 +102,8 @@ class RegistroApp:
             y = 100 + (i % 3) * 50
             tk.Label(self.root, text=txt, font=("Arial", 14), bg="white", width=25).place(x=x, y=y)
 
-        tk.Button(self.root, text="Atras", font=("Arial", 14), bg="navy", fg="white", width=12, command=self.pantalla_datos).place(x=220, y=400)
-        tk.Button(self.root, text="Confirmar", font=("Arial", 14), bg="navy", fg="white", width=12, command=self.pantalla_exito).place(x=420, y=400)
-
+        tk.Button(self.root, text="Atras", font=("Arial", 14), bg="navy", fg="white", width=12, command=self.pantalla_datos).place(x=220, y=270)
+        tk.Button(self.root, text="Confirmar", font=("Arial", 14), bg="navy", fg="white", width=12, command=self.pantalla_exito).place(x=420, y=270)
     def pantalla_exito(self):
         self.limpiar_pantalla()
         tk.Label(self.root, image=self.logo, bg="#f5e0e0").place(x=10, y=10)
