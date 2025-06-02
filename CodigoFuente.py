@@ -19,11 +19,11 @@ class RegistroApp:
         
         # Configuración de la base de datos
         self.db_config = {
-            'host': '192.168.1.40',      # IP o dominio del servidor PostgreSQL
-            'database': 'Prueba',          # Nombre de tu base de datos
-            'user': 'javier',          # Usuario de la base de datos
-            'password': '1234',   # Contraseña del usuario
-            'port': '5432'                 # Puerto de PostgreSQL
+            'host': 'tu_host_remoto',
+            'database': 'Prueba',
+            'user': 'tu_usuario',
+            'password': 'tu_contraseña',
+            'port': '5432'
         }
         
         self.pantalla_principal()
@@ -124,13 +124,23 @@ class RegistroApp:
     def pantalla_principal(self):
         """Muestra la pantalla principal de la aplicación"""
         self.limpiar_pantalla()
+        self.docente_actual = None  # Resetear docente al volver a la pantalla principal
+        
         tk.Label(self.root, image=self.logo, bg="#f5e0e0").place(x=10, y=10)
-        tk.Label(self.root, text="Laboratorio de MAC", font=("Arial", 24, "bold"), fg="#1d127a", bg="#f5e0e0").pack(pady=100)
+        tk.Label(self.root, text="Laboratorio de MAC", font=("Arial", 24, "bold"), fg="#1d127a", bg="#f5e0e0").pack(pady=(100, 20))
         tk.Label(self.root, text="Aproximar Tarjeta", font=("Arial", 18), fg="#1d127a", bg="#f5e0e0").pack()
 
-        self.rfid_label = tk.Label(self.root, text="Esperando tarjeta...", font=("Arial", 18), fg="black", bg="#f5e0e0")
-        self.rfid_label.pack(pady=20)
-        tk.Button(self.root, text="Continuar", font=("Arial", 16, "bold"), fg="white", bg="#1d127a", command=self.validar_rfid).place(x=330, y=350)
+        # Etiqueta para mostrar información del docente
+        self.docente_label = tk.Label(self.root, text="", font=("Arial", 14), fg="black", bg="#f5e0e0")
+        self.docente_label.pack(pady=(0, 20))
+
+        self.rfid_label = tk.Label(self.root, text="Esperando tarjeta...", font=("Arial", 16), fg="black", bg="#f5e0e0")
+        self.rfid_label.pack(pady=(0, 20))
+
+        self.btn_continuar = tk.Button(self.root, text="Continuar", font=("Arial", 16, "bold"), 
+                                     fg="white", bg="#1d127a", state=tk.DISABLED,
+                                     command=self.validar_rfid)
+        self.btn_continuar.pack(pady=20)
 
         # Iniciar el hilo de lectura RFID
         threading.Thread(target=self.leer_rfid, daemon=True).start()
@@ -148,9 +158,11 @@ class RegistroApp:
             self.docente_actual = self.buscar_docente_por_rfid(rfid)
             
             if self.docente_actual:
-                self.root.after(1000, self.pantalla_datos)
+                self.docente_label.config(text=f"Docente: {self.docente_actual['docente']}")
+                self.btn_continuar.config(state=tk.NORMAL)
             else:
                 self.rfid_label.config(text="Docente no registrado")
+                self.docente_label.config(text="")
                 messagebox.showerror("Error", "Docente no encontrado en la base de datos")
                 
         except Exception as e:
@@ -160,9 +172,9 @@ class RegistroApp:
             GPIO.cleanup()
 
     def validar_rfid(self):
-        """Valida el RFID leído"""
-        if 'rfid' not in self.datos:
-            messagebox.showerror("Error", "No se ha detectado ninguna tarjeta")
+        """Valida el RFID leído y pasa a la siguiente pantalla"""
+        if 'rfid' not in self.datos or not self.docente_actual:
+            messagebox.showerror("Error", "No se ha detectado ninguna tarjeta válida")
             return
         self.pantalla_datos()
 
@@ -172,7 +184,7 @@ class RegistroApp:
         tk.Label(self.root, image=self.logo, bg="#f5e0e0").place(x=10, y=10)
         tk.Label(self.root, text="Laboratorio de MAC", font=("Arial", 20, "bold"), fg="#1d127a", bg="#f5e0e0").place(x=280, y=20)
         
-        # Mostrar información del docente si está registrado
+        # Mostrar información del docente
         if self.docente_actual:
             docente_info = f"Docente: {self.docente_actual['docente']}"
             tk.Label(self.root, text=docente_info, font=("Arial", 14), fg="black", bg="#f5e0e0").place(x=250, y=70)
