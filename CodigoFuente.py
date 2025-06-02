@@ -47,7 +47,7 @@ class RegistroApp:
         try:
             with conn.cursor() as cursor:
                 query = sql.SQL("""
-                    SELECT id, docente, rfid 
+                    SELECT id, docente, rfid, materia, grupo, software 
                     FROM prueba 
                     WHERE rfid = %s
                 """)
@@ -58,7 +58,10 @@ class RegistroApp:
                     return {
                         'id': docente[0],
                         'docente': docente[1],
-                        'rfid': docente[2]
+                        'rfid': docente[2],
+                        'materia': docente[3],
+                        'grupo': docente[4],
+                        'software': docente[5]
                     }
                 return None
         except Error as e:
@@ -77,7 +80,7 @@ class RegistroApp:
         try:
             with conn.cursor() as cursor:
                 query = sql.SQL("""
-                    INSERT INTO prueba 
+                    INSERT INTO registros 
                     (rfid, docente, totalumnos, materia, grupo, software, entrada) 
                     VALUES (%s, %s, %s, %s, %s, %s, NOW())
                 """)
@@ -101,9 +104,11 @@ class RegistroApp:
         try:
             with conn.cursor() as cursor:
                 query = sql.SQL("""
-                    UPDATE prueba 
+                    UPDATE registros 
                     SET salida = NOW() 
                     WHERE rfid = %s AND salida IS NULL
+                    ORDER BY entrada DESC
+                    LIMIT 1
                 """)
                 cursor.execute(query, (rfid,))
                 conn.commit()
@@ -132,10 +137,14 @@ class RegistroApp:
 
         # Etiqueta para mostrar información del docente
         self.docente_label = tk.Label(self.root, text="", font=("Arial", 14), fg="black", bg="#f5e0e0")
-        self.docente_label.pack(pady=(0, 20))
+        self.docente_label.pack(pady=(0, 10))
 
         self.rfid_label = tk.Label(self.root, text="Esperando tarjeta...", font=("Arial", 16), fg="black", bg="#f5e0e0")
         self.rfid_label.pack(pady=(0, 20))
+
+        # Etiqueta para mostrar datos asignados
+        self.datos_asignados_label = tk.Label(self.root, text="", font=("Arial", 12), fg="black", bg="#f5e0e0", wraplength=600)
+        self.datos_asignados_label.pack(pady=(0, 20))
 
         self.btn_continuar = tk.Button(self.root, text="Continuar", font=("Arial", 16, "bold"), 
                                      fg="white", bg="#1d127a", state=tk.DISABLED,
@@ -159,10 +168,18 @@ class RegistroApp:
             
             if self.docente_actual:
                 self.docente_label.config(text=f"Docente: {self.docente_actual['docente']}")
+                
+                # Mostrar datos asignados
+                datos_text = f"Materia: {self.docente_actual['materia']}\n"
+                datos_text += f"Grupo: {self.docente_actual['grupo']}\n"
+                datos_text += f"Software: {self.docente_actual['software']}"
+                self.datos_asignados_label.config(text=datos_text)
+                
                 self.btn_continuar.config(state=tk.NORMAL)
             else:
                 self.rfid_label.config(text="Docente no registrado")
                 self.docente_label.config(text="")
+                self.datos_asignados_label.config(text="")
                 messagebox.showerror("Error", "Docente no encontrado en la base de datos")
                 
         except Exception as e:
@@ -176,72 +193,15 @@ class RegistroApp:
         if 'rfid' not in self.datos or not self.docente_actual:
             messagebox.showerror("Error", "No se ha detectado ninguna tarjeta válida")
             return
-        self.pantalla_datos()
-
-    def pantalla_datos(self):
-        """Muestra la pantalla para ingresar datos adicionales"""
-        self.limpiar_pantalla()
-        tk.Label(self.root, image=self.logo, bg="#f5e0e0").place(x=10, y=10)
-        tk.Label(self.root, text="Laboratorio de MAC", font=("Arial", 20, "bold"), fg="#1d127a", bg="#f5e0e0").place(x=280, y=20)
         
-        # Mostrar información del docente
-        if self.docente_actual:
-            docente_info = f"Docente: {self.docente_actual['docente']}"
-            tk.Label(self.root, text=docente_info, font=("Arial", 14), fg="black", bg="#f5e0e0").place(x=250, y=70)
-
-        tk.Label(self.root, text="Total de alumnos que hicieron uso del CC1:", font=("Arial", 12, "bold"), fg="white", bg="#1d127a").place(x=160, y=100)
-        self.total_entry = tk.Entry(self.root, font=("Arial", 12), width=10, justify='center')
-        self.total_entry.place(x=520, y=100)
-
-        tk.Button(self.root, text="Materia", font=("Arial", 12, "bold"), fg="white", bg="#1d127a", width=20).place(x=80, y=180)
-        self.materia_combobox = ttk.Combobox(self.root, font=("Arial", 12), width=22, state="readonly")
-        self.materia_combobox['values'] = ["Ingenieria de Software", "Bases de Datos", "Programacion Web", "Inteligencia Artificial", "Ciencia de Datos"]
-        self.materia_combobox.place(x=80, y=230)
-
-        tk.Button(self.root, text="Grupo y Carrera", font=("Arial", 12, "bold"), fg="white", bg="#1d127a", width=20).place(x=310, y=180)
-        self.grupo_combobox = ttk.Combobox(self.root, font=("Arial", 12), width=22, state="readonly")
-        self.grupo_combobox['values'] = ["1A-ISC", "1A-INF"]
-        self.grupo_combobox.place(x=310, y=230)
-
-        tk.Button(self.root, text="Tipo de uso de software", font=("Arial", 12, "bold"), fg="white", bg="#1d127a", width=20).place(x=540, y=180)
-        self.software_combobox = ttk.Combobox(self.root, font=("Arial", 12), width=22, state="readonly")
-        self.software_combobox['values'] = ["Plataforma", "Office", "Internet", "AUTOCAD", "Teams"]
-        self.software_combobox.place(x=540, y=230)
-
-        tk.Button(self.root, text="Continuar", font=("Arial", 14, "bold"), fg="white", bg="#1d127a", padx=20, pady=5, command=self.validar_datos).place(x=330, y=300)
-
-    def validar_datos(self):
-        """Valida los datos ingresados antes de registrar"""
-        if not self.total_entry.get().isdigit() or not self.materia_combobox.get() or not self.grupo_combobox.get() or not self.software_combobox.get():
-            messagebox.showerror("Faltan datos", "Por favor, complete todos los campos correctamente.")
-            return
-
-        total_alumnos = self.total_entry.get()
-        materia = self.materia_combobox.get()
-        grupo = self.grupo_combobox.get()
-        software = self.software_combobox.get()
-
-        # Registrar los datos en la base de datos
-        if self.docente_actual:
-            if self.registrar_entrada(
-                self.docente_actual['rfid'],
-                self.docente_actual['docente'],
-                total_alumnos,
-                materia,
-                grupo,
-                software
-            ):
-                self.datos["total"] = total_alumnos
-                self.datos["materia"] = materia
-                self.datos["grupo"] = grupo
-                self.datos["software"] = software
-                self.datos["fecha"] = datetime.now().strftime("%d/%m/%Y")
-                self.datos["hora"] = datetime.now().strftime("%H:%M")
-                self.pantalla_confirmacion()
-            else:
-                messagebox.showerror("Error", "No se pudo registrar la entrada en la base de datos")
-        else:
-            messagebox.showerror("Error", "No se encontró información del docente")
+        # Pasar directamente a la pantalla de confirmación con los datos del docente
+        self.datos["materia"] = self.docente_actual['materia']
+        self.datos["grupo"] = self.docente_actual['grupo']
+        self.datos["software"] = self.docente_actual['software']
+        self.datos["fecha"] = datetime.now().strftime("%d/%m/%Y")
+        self.datos["hora"] = datetime.now().strftime("%H:%M")
+        
+        self.pantalla_confirmacion()
 
     def pantalla_confirmacion(self):
         """Muestra la pantalla de confirmación de datos"""
@@ -250,19 +210,50 @@ class RegistroApp:
         tk.Label(self.root, text="Laboratorio de MAC", font=("Arial", 22, "bold"), fg="navy", bg="#f5e0e0").pack(pady=20)
 
         datos = self.datos
+        
+        # Mostrar información del docente
+        tk.Label(self.root, text=f"Docente: {self.docente_actual['docente']}", 
+                font=("Arial", 16), bg="white", width=40).place(x=200, y=70)
+
         etiquetas = [
-            f"Entrada: {datos['hora']}", datos["fecha"], datos["grupo"],
-            datos["rfid"], datos["materia"],
-            f"Total de Alumnos: {datos['total']}", f"Software: {datos['software']}"
+            f"Entrada: {datos['hora']}", 
+            datos["fecha"], 
+            f"Grupo: {datos['grupo']}",
+            f"Materia: {datos['materia']}", 
+            f"Software: {datos['software']}"
         ]
 
         for i, txt in enumerate(etiquetas):
-            x = 120 if i < 3 else 450
-            y = 100 + (i % 3) * 50
-            tk.Label(self.root, text=txt, font=("Arial", 14), bg="white", width=25).place(x=x, y=y)
+            y = 120 + i * 40
+            tk.Label(self.root, text=txt, font=("Arial", 14), bg="white", width=40).place(x=200, y=y)
 
-        tk.Button(self.root, text="Atras", font=("Arial", 14), bg="navy", fg="white", width=12, command=self.pantalla_datos).place(x=220, y=270)
-        tk.Button(self.root, text="Confirmar", font=("Arial", 14), bg="navy", fg="white", width=12, command=self.pantalla_exito).place(x=420, y=270)
+        tk.Label(self.root, text="Total de alumnos:", font=("Arial", 14), bg="#f5e0e0").place(x=200, y=320)
+        self.total_entry = tk.Entry(self.root, font=("Arial", 14), width=10, justify='center')
+        self.total_entry.place(x=400, y=320)
+
+        tk.Button(self.root, text="Atras", font=("Arial", 14), bg="navy", fg="white", width=12, command=self.pantalla_principal).place(x=220, y=380)
+        tk.Button(self.root, text="Confirmar", font=("Arial", 14), bg="navy", fg="white", width=12, command=self.confirmar_registro).place(x=420, y=380)
+
+    def confirmar_registro(self):
+        """Confirma el registro en la base de datos"""
+        if not self.total_entry.get().isdigit():
+            messagebox.showerror("Error", "Por favor ingrese un número válido de alumnos")
+            return
+
+        total_alumnos = self.total_entry.get()
+        
+        if self.registrar_entrada(
+            self.docente_actual['rfid'],
+            self.docente_actual['docente'],
+            total_alumnos,
+            self.docente_actual['materia'],
+            self.docente_actual['grupo'],
+            self.docente_actual['software']
+        ):
+            self.datos["total"] = total_alumnos
+            self.pantalla_exito()
+        else:
+            messagebox.showerror("Error", "No se pudo registrar la entrada en la base de datos")
 
     def pantalla_exito(self):
         """Muestra la pantalla de registro exitoso"""
