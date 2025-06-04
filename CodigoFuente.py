@@ -20,10 +20,10 @@ class RegistroApp:
         
         # Configuración de la base de datos
         self.db_config = {
-            'host': 'tu_host_remoto',
-            'database': 'Prueba',
-            'user': 'tu_usuario',
-            'password': 'tu_contraseña',
+            'host': '192.168.1.40',
+            'database': 'IDSentonel',
+            'user': 'javier',
+            'password': '1234',
             'port': '5432'
         }
         
@@ -103,19 +103,36 @@ class RegistroApp:
             if conn:
                 conn.close()
 
-    def registrar_entrada(self, docente_id, materia_id, grupo_id, software_id, total_alumnos):
-        """Registra entrada en la base de datos"""
+    def registrar_entrada(self, docente_id, materia, grupo, total_alumnos):
+        """Registra entrada en la tabla prueba"""
         conn = self.conectar_db()
         if conn is None:
             return False
             
         try:
             with conn.cursor() as cursor:
+                # Primero obtenemos los datos del docente
                 cursor.execute("""
-                    INSERT INTO registros_acceso 
-                    (docente_id, materia_id, grupo_id, software_id, total_alumnos, entrada) 
+                    SELECT rfid, nombre || ' ' || apellido 
+                    FROM docentes 
+                    WHERE id = %s
+                """, (docente_id,))
+                docente_data = cursor.fetchone()
+                
+                if not docente_data:
+                    print("Docente no encontrado")
+                    return False
+                    
+                rfid = docente_data[0]
+                nombre_docente = docente_data[1]
+                
+                # Insertamos en la tabla prueba
+                cursor.execute("""
+                    INSERT INTO prueba 
+                    (rfid, docente, totalumnos, materia, grupo, entrada) 
                     VALUES (%s, %s, %s, %s, %s, NOW())
-                """, (docente_id, materia_id, grupo_id, software_id, total_alumnos))
+                """, (rfid, nombre_docente, total_alumnos, materia, grupo))
+                
                 conn.commit()
                 return True
         except Error as e:
@@ -126,26 +143,26 @@ class RegistroApp:
             if conn:
                 conn.close()
 
-    def registrar_salida(self, docente_id):
-        """Versión corregida para registrar salida"""
+    def registrar_salida(self, rfid):
+        """Registra salida en la tabla prueba"""
         conn = self.conectar_db()
         if conn is None:
             return False
             
         try:
             with conn.cursor() as cursor:
-                # 1. Obtener el último registro sin salida
+                # 1. Buscamos el último registro sin salida para este RFID
                 cursor.execute("""
-                    SELECT id FROM registros_acceso 
-                    WHERE docente_id = %s AND salida IS NULL 
+                    SELECT id FROM prueba 
+                    WHERE rfid = %s AND salida IS NULL 
                     ORDER BY entrada DESC LIMIT 1
-                """, (docente_id,))
+                """, (rfid,))
                 registro = cursor.fetchone()
                 
                 if registro:
-                    # 2. Actualizar solo ese registro
+                    # 2. Actualizamos la salida
                     cursor.execute("""
-                        UPDATE registros_acceso 
+                        UPDATE prueba 
                         SET salida = NOW() 
                         WHERE id = %s
                     """, (registro[0],))
