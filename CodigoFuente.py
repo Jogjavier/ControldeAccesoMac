@@ -398,20 +398,20 @@ class RegistroApp:
         reader = SimpleMFRC522()
         try:
             id, text = reader.read()
-            rfid = str(id)
+            rfid = str(id)  # Convertir a string siempre
             
-            if self.docente_actual and self.docente_actual['rfid'] == rfid:
-                if self.registrar_salida(self.docente_actual['id']):
-                    self.rfid_label.config(text=f"Salida registrada: {rfid}")
+            if self.docente_actual and str(self.docente_actual['rfid']) == rfid:
+                if self.registrar_salida(rfid):  # Pasar el RFID como string
+                    self.rfid_label.config(text=f"Salida registrada para ID: {rfid}")
                     self.root.after(2000, self.pantalla_principal)
                 else:
                     self.rfid_label.config(text="Error al registrar salida")
             else:
-                self.rfid_label.config(text="Tarjeta no coincide")
-                messagebox.showerror("Error", "Use la misma tarjeta de entrada")
+                self.rfid_label.config(text="Tarjeta no coincide con entrada")
+                messagebox.showerror("Error", "La tarjeta no coincide con el docente registrado")
                 
         except Exception as e:
-            print("Error leyendo RFID:", e)
+            print("Error leyendo salida:", e)
             self.rfid_label.config(text="Error al leer tarjeta")
         finally:
             GPIO.cleanup()
