@@ -103,15 +103,15 @@ class RegistroApp:
             if conn:
                 conn.close()
 
-    def registrar_entrada(self, docente_id, materia, grupo, total_alumnos):
-        """Registra entrada en la tabla prueba"""
+    def registrar_entrada(self, docente_id, materia, grupo, software, total_alumnos):
+        """Registra entrada en la tabla prueba con todos los campos"""
         conn = self.conectar_db()
         if conn is None:
             return False
             
         try:
             with conn.cursor() as cursor:
-                # Primero obtenemos los datos del docente
+                # Obtener datos del docente
                 cursor.execute("""
                     SELECT rfid, nombre || ' ' || apellido 
                     FROM docentes 
@@ -126,12 +126,12 @@ class RegistroApp:
                 rfid = docente_data[0]
                 nombre_docente = docente_data[1]
                 
-                # Insertamos en la tabla prueba
+                # Insertar en tabla prueba con todos los campos
                 cursor.execute("""
                     INSERT INTO prueba 
-                    (rfid, docente, totalumnos, materia, grupo, entrada) 
-                    VALUES (%s, %s, %s, %s, %s, NOW())
-                """, (rfid, nombre_docente, total_alumnos, materia, grupo))
+                    (rfid, docente, totalumnos, materia, grupo, software, entrada) 
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                """, (rfid, nombre_docente, total_alumnos, materia, grupo, software))
                 
                 conn.commit()
                 return True
@@ -304,34 +304,44 @@ class RegistroApp:
                 messagebox.showerror("Error", "Seleccione opciones válidas")
                 return
                 
-            materia_id = self.asignaciones['materias'][materia_idx][0]
-            grupo_id = self.asignaciones['grupos'][grupo_idx][0]
-            software_id = self.asignaciones['software'][software_idx][0]
-            total_alumnos = int(self.total_entry.get())
-            
+            # Para la Opción 1 (nombres directos):
             if self.registrar_entrada(
                 self.docente_actual['id'],
-                materia_id,
-                grupo_id,
-                software_id,
-                total_alumnos
+                self.materia_combobox.get(),  # Nombre materia
+                self.grupo_combobox.get(),    # Nombre grupo
+                self.software_combobox.get(), # Nombre software
+                int(self.total_entry.get())   # Total alumnos
             ):
                 self.datos = {
                     'docente': f"{self.docente_actual['nombre']} {self.docente_actual['apellido']}",
                     'materia': self.materia_combobox.get(),
                     'grupo': self.grupo_combobox.get(),
                     'software': self.software_combobox.get(),
-                    'total': total_alumnos,
+                    'total': self.total_entry.get(),
                     'fecha': datetime.now().strftime("%d/%m/%Y"),
                     'hora': datetime.now().strftime("%H:%M")
                 }
                 self.pantalla_confirmacion()
-            else:
-                messagebox.showerror("Error", "No se pudo registrar la entrada")
+                
+            # Para la Opción 2 (usando IDs):
+            """
+            materia_id = self.asignaciones['materias'][materia_idx][0]
+            grupo_id = self.asignaciones['grupos'][grupo_idx][0]
+            software_id = self.asignaciones['software'][software_idx][0]
+            
+            if self.registrar_entrada(
+                self.docente_actual['id'],
+                materia_id,
+                grupo_id,
+                software_id,
+                int(self.total_entry.get())
+            ):
+                # ... resto del código
+            """
                 
         except Exception as e:
             print(f"Error al validar datos: {e}")
-            messagebox.showerror("Error", "Ocurrió un error")
+            messagebox.showerror("Error", "Ocurrió un error al registrar")
 
     def pantalla_confirmacion(self):
         self.limpiar_pantalla()
