@@ -185,23 +185,38 @@ class RegistroApp:
         self.limpiar_pantalla()
         self.docente_actual = None
         
+        # Logo y título (posición original)
         tk.Label(self.root, image=self.logo, bg="#f5e0e0").place(x=10, y=10)
-        tk.Label(self.root, text="Laboratorio de MAC", font=("Arial", 24, "bold"), fg="#1d127a", bg="#f5e0e0").pack(pady=100)
-        tk.Label(self.root, text="Aproximar Tarjeta", font=("Arial", 18), fg="#1d127a", bg="#f5e0e0").pack()
-
-        self.rfid_label = tk.Label(self.root, text="Esperando tarjeta...", font=("Arial", 18), fg="black", bg="#f5e0e0")
-        self.rfid_label.pack(pady=20)
+        tk.Label(self.root, text="Laboratorio de MAC", font=("Arial", 24, "bold"), 
+                fg="#1d127a", bg="#f5e0e0").pack(pady=(50, 10))  # Reducido pady superior
         
-        # Etiqueta para nombre del docente (nueva)
-        self.docente_label = tk.Label(self.root, text="", font=("Arial", 14), bg="#f5e0e0")
-        self.docente_label.pack()
+        # Etiqueta para "Aproximar Tarjeta"
+        tk.Label(self.root, text="Aproximar Tarjeta", font=("Arial", 18), 
+                fg="#1d127a", bg="#f5e0e0").pack()
         
-        tk.Button(self.root, text="Continuar", font=("Arial", 16, "bold"), 
-                 fg="white", bg="#1d127a", command=self.validar_rfid).place(x=330, y=350)
-
+        # Etiqueta para estado del RFID (posición ajustada)
+        self.rfid_label = tk.Label(self.root, text="Esperando tarjeta...", 
+                                font=("Arial", 16), fg="black", bg="#f5e0e0")
+        self.rfid_label.pack(pady=(10, 5))  # Espaciado reducido
+        
+        # Etiqueta para nombre del docente (nueva posición)
+        self.docente_label = tk.Label(self.root, text="", font=("Arial", 14, "bold"), 
+                                    fg="#1d127a", bg="#f5e0e0")
+        self.docente_label.pack(pady=(5, 20))  # Espaciado ajustado
+        
+        # Botón Continuar (posición más arriba)
+        self.btn_continuar = tk.Button(self.root, text="Continuar", 
+                                    font=("Arial", 16, "bold"), 
+                                    fg="white", bg="#1d127a", 
+                                    state=tk.DISABLED,
+                                    command=self.validar_rfid)
+        self.btn_continuar.pack(pady=(0, 50))  # Movido más arriba
+        
+        # Iniciar lectura RFID
         threading.Thread(target=self.leer_rfid, daemon=True).start()
 
     def leer_rfid(self):
+        """Lee el RFID del lector"""
         reader = SimpleMFRC522()
         try:
             id, text = reader.read()
@@ -209,21 +224,23 @@ class RegistroApp:
             self.datos["rfid"] = rfid
             self.rfid_label.config(text=f"Tarjeta detectada: {rfid}")
             
+            # Buscar docente en la base de datos
             self.docente_actual = self.buscar_docente_por_rfid(rfid)
             
             if self.docente_actual:
-                nombre_completo = f"{self.docente_actual['nombre']} {self.docente_actual['apellido']}"
-                self.docente_label.config(text=f"Docente: {nombre_completo}")
+                nombre_completo = f"Docente: {self.docente_actual['nombre']} {self.docente_actual['apellido']}"
+                self.docente_label.config(text=nombre_completo)  # Actualiza la etiqueta
+                self.btn_continuar.config(state=tk.NORMAL)
             else:
                 self.rfid_label.config(text="Docente no registrado")
-                messagebox.showerror("Error", "Docente no encontrado")
+                self.docente_label.config(text="")  # Limpia el nombre
+                messagebox.showerror("Error", "Docente no encontrado en la base de datos")
                 
         except Exception as e:
             print("Error leyendo RFID:", e)
             self.rfid_label.config(text="Error al leer tarjeta")
         finally:
             GPIO.cleanup()
-
     def validar_rfid(self):
         if not self.docente_actual:
             messagebox.showerror("Error", "No se detectó tarjeta válida")
@@ -319,34 +336,42 @@ class RegistroApp:
     def pantalla_confirmacion(self):
         self.limpiar_pantalla()
         tk.Label(self.root, image=self.logo, bg="#f5e0e0").place(x=10, y=10)
-        tk.Label(self.root, text="Laboratorio de MAC", font=("Arial", 22, "bold"), fg="navy", bg="#f5e0e0").pack(pady=20)
-
+        tk.Label(self.root, text="Laboratorio de MAC", font=("Arial", 22, "bold"), 
+                fg="navy", bg="#f5e0e0").pack(pady=(30, 20))  # Ajuste de espacio
+        
+        # Mostrar datos con nuevo espaciado
         datos = self.datos
         etiquetas = [
             f"Docente: {datos['docente']}",
             f"Materia: {datos['materia']}",
             f"Grupo: {datos['grupo']}",
             f"Software: {datos['software']}",
-            f"Alumnos: {datos['total']}",
+            f"Total Alumnos: {datos['total']}",
             f"Fecha: {datos['fecha']}",
-            f"Hora: {datos['hora']}"
+            f"Hora Entrada: {datos['hora']}"
         ]
 
         for i, texto in enumerate(etiquetas):
-            tk.Label(self.root, text=texto, font=("Arial", 14), bg="white", width=40).place(x=200, y=100 + i*40)
-
-        tk.Button(self.root, text="Atrás", font=("Arial", 14), bg="navy", fg="white", 
-                 command=self.pantalla_datos).place(x=250, y=400)
-        tk.Button(self.root, text="Confirmar", font=("Arial", 14), bg="navy", fg="white",
-                 command=self.pantalla_exito).place(x=400, y=400)
+            tk.Label(self.root, text=texto, font=("Arial", 14), 
+                    bg="white", width=30).place(x=250, y=100 + i*35)  # Posición ajustada
+        
+        # Botones más arriba
+        tk.Button(self.root, text="Atrás", font=("Arial", 14), 
+                bg="navy", fg="white", width=10,
+                command=self.pantalla_datos).place(x=250, y=350)  # Posición ajustada
+        tk.Button(self.root, text="Confirmar", font=("Arial", 14), 
+                bg="navy", fg="white", width=10,
+                command=self.pantalla_exito).place(x=400, y=350)  # Posición ajustada
 
     def pantalla_exito(self):
         self.limpiar_pantalla()
         tk.Label(self.root, image=self.logo, bg="#f5e0e0").place(x=10, y=10)
-        tk.Label(self.root, text="Registro Exitoso", font=("Arial", 20, "bold"), bg="lime", fg="black", width=30).pack(pady=100)
-        tk.Button(self.root, text="Registrar Salida", font=("Arial", 16), bg="#1d127a", fg="white",
-                 command=self.pantalla_salida).pack()
-
+        tk.Label(self.root, text="Registro Exitoso", font=("Arial", 20, "bold"), 
+                bg="lime", fg="black", width=30).pack(pady=(80, 30))  # Ajuste de posición
+    
+        # Botón más arriba
+        tk.Button(self.root, text="Registrar Salida", font=("Arial", 16), 
+                bg="#1d127a", fg="white", command=self.pantalla_salida).pack(pady=10)
     def pantalla_salida(self):
         self.limpiar_pantalla()
         tk.Label(self.root, image=self.logo, bg="#f5e0e0").place(x=10, y=10)
