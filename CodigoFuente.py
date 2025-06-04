@@ -144,23 +144,24 @@ class RegistroApp:
                 conn.close()
 
     def registrar_salida(self, rfid):
-        """Registra salida en la tabla prueba"""
+        """Versión corregida para registrar salida"""
         conn = self.conectar_db()
         if conn is None:
             return False
             
         try:
             with conn.cursor() as cursor:
-                # 1. Buscamos el último registro sin salida para este RFID
+                # 1. Obtener el último registro sin salida
                 cursor.execute("""
                     SELECT id FROM prueba 
                     WHERE rfid = %s AND salida IS NULL 
                     ORDER BY entrada DESC LIMIT 1
-                """, (rfid,))
+                """, (str(rfid),))  # Asegurar que rfid sea string
+                
                 registro = cursor.fetchone()
                 
                 if registro:
-                    # 2. Actualizamos la salida
+                    # 2. Actualizar solo ese registro
                     cursor.execute("""
                         UPDATE prueba 
                         SET salida = NOW() 
