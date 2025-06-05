@@ -6,7 +6,7 @@ import RPi.GPIO as GPIO
 from mfrc522 import SimpleMFRC522
 import psycopg2
 from psycopg2 import sql, Error
-
+#LABORATORIOMAC
 class RegistroApp:
     def __init__(self, root):
         self.root = root
