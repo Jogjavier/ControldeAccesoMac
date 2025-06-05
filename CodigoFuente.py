@@ -21,7 +21,7 @@ class RegistroApp:
         # Configuración de la base de datos
         self.db_config = {
             'host': '192.168.1.40',
-            'database': 'IDSentonel',
+            'database': 'IDSentinel',
             'user': 'javier',
             'password': '1234',
             'port': '5432'
@@ -49,8 +49,8 @@ class RegistroApp:
             with conn.cursor() as cursor:
                 # Obtener docente
                 cursor.execute("""
-                    SELECT id, nombre, apellido, rfid 
-                    FROM docentes 
+                    SELECT id, nombre, rfid 
+                    FROM teachers 
                     WHERE rfid = %s
                 """, (rfid,))
                 docente = cursor.fetchone()
@@ -59,40 +59,39 @@ class RegistroApp:
                     docente_info = {
                         'id': docente[0],
                         'nombre': docente[1],
-                        'apellido': docente[2],
-                        'rfid': docente[3]
+                        'rfid': docente[2]
                     }
                     
                     # Obtener asignaciones
                     self.asignaciones = {
-                        'materias': [],
-                        'grupos': [],
-                        'software': []
+                        'subjects': [],
+                        'career_groups': [],
+                        'software_types': []
                     }
                     
                     cursor.execute("""
-                        SELECT m.id, m.nombre 
-                        FROM materias m
-                        JOIN docente_materia dm ON m.id = dm.materia_id
-                        WHERE dm.docente_id = %s
-                    """, (docente[0],))
-                    self.asignaciones['materias'] = cursor.fetchall()
-                    
-                    cursor.execute("""
-                        SELECT g.id, g.nombre, g.carrera 
-                        FROM grupos g
-                        JOIN docente_grupo dg ON g.id = dg.grupo_id
-                        WHERE dg.docente_id = %s
-                    """, (docente[0],))
-                    self.asignaciones['grupos'] = cursor.fetchall()
-                    
-                    cursor.execute("""
                         SELECT s.id, s.nombre 
-                        FROM software s
-                        JOIN docente_software ds ON s.id = ds.software_id
-                        WHERE ds.docente_id = %s
+                        FROM subjects s
+                        JOIN teacher_subject ts ON s.id = ts.subject_id
+                        WHERE ts.teacher_id = %s
                     """, (docente[0],))
-                    self.asignaciones['software'] = cursor.fetchall()
+                    self.asignaciones['subjects'] = cursor.fetchall()
+                    
+                    cursor.execute("""
+                        SELECT cg.id, cg.nombre, cg.carrera 
+                        FROM career_groups cg
+                        JOIN teacher_career_group tcg ON cg.id = tcg.career_group_id
+                        WHERE tcg.teacher_id = %s
+                    """, (docente[0],))
+                    self.asignaciones['career_groups'] = cursor.fetchall()
+                    
+                    cursor.execute("""
+                        SELECT st.id, st.nombre 
+                        FROM software_types st
+                        JOIN teacher_software_types tst ON st.id = tst.software_type_id
+                        WHERE tst.teacher_id = %s
+                    """, (docente[0],))
+                    self.asignaciones['software_types'] = cursor.fetchall()
                     
                     return docente_info
                 return None
@@ -103,7 +102,7 @@ class RegistroApp:
             if conn:
                 conn.close()
 
-    def registrar_entrada(self, docente_id, materia, grupo, software, total_alumnos):
+    def registrar_entrada(self, teacher_id, subject_id, career_group_id, software_type_id, num_alumnos):
         """Registra entrada en la tabla prueba con todos los campos"""
         conn = self.conectar_db()
         if conn is None:
@@ -113,10 +112,10 @@ class RegistroApp:
             with conn.cursor() as cursor:
                 # Obtener datos del docente
                 cursor.execute("""
-                    SELECT rfid, nombre || ' ' || apellido 
-                    FROM docentes 
+                    SELECT rfid, nombre  
+                    FROM teachers 
                     WHERE id = %s
-                """, (docente_id,))
+                """, (teacher_id,))
                 docente_data = cursor.fetchone()
                 
                 if not docente_data:
@@ -128,10 +127,10 @@ class RegistroApp:
                 
                 # Insertar en tabla prueba con todos los campos
                 cursor.execute("""
-                    INSERT INTO prueba 
-                    (rfid, docente, totalumnos, materia, grupo, software, entrada) 
-                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                """, (rfid, nombre_docente, total_alumnos, materia, grupo, software))
+                    INSERT INTO access_records 
+                    (teacher_id, subject_id, career_group_id, software_type_id, total_alumnos, entry_time) 
+                    VALUES (%s, %s, %s, %s, %s, NOW())
+                """, (teacher_id, subject_id, career_group_id, software_type_id, num_alumnos))
                 
                 conn.commit()
                 return True
@@ -153,9 +152,9 @@ class RegistroApp:
             with conn.cursor() as cursor:
                 # 1. Obtener el último registro sin salida
                 cursor.execute("""
-                    SELECT id FROM prueba 
-                    WHERE rfid = %s AND salida IS NULL 
-                    ORDER BY entrada DESC LIMIT 1
+                    SELECT id FROM access_records 
+                    WHERE teacher_id = %s AND exit_time IS NULL 
+                    ORDER BY entry_time DESC LIMIT 1
                 """, (str(rfid),))  # Asegurar que rfid sea string
                 
                 registro = cursor.fetchone()
@@ -163,8 +162,8 @@ class RegistroApp:
                 if registro:
                     # 2. Actualizar solo ese registro
                     cursor.execute("""
-                        UPDATE prueba 
-                        SET salida = NOW() 
+                        UPDATE access_records 
+                        SET exit_time = NOW() 
                         WHERE id = %s
                     """, (registro[0],))
                     conn.commit()
@@ -229,7 +228,7 @@ class RegistroApp:
             self.docente_actual = self.buscar_docente_por_rfid(rfid)
             
             if self.docente_actual:
-                nombre_completo = f"Docente: {self.docente_actual['nombre']} {self.docente_actual['apellido']}"
+                nombre_completo = f"Docente: {self.docente_actual['nombre']}"
                 self.docente_label.config(text=nombre_completo)  # Actualiza la etiqueta
                 self.btn_continuar.config(state=tk.NORMAL)
             else:
@@ -297,27 +296,31 @@ class RegistroApp:
             return
             
         try:
-            materia_idx = self.materia_combobox.current()
-            grupo_idx = self.grupo_combobox.current()
-            software_idx = self.software_combobox.current()
+            subject_idx = self.subject_combobox.current()
+            career_group_idx = self.career_group_combobox.current()
+            software_type_idx = self.software_type_combobox.current()
             
-            if -1 in [materia_idx, grupo_idx, software_idx]:
+            if -1 in [subject_idx, career_group_idx, software_type_idx]:
                 messagebox.showerror("Error", "Seleccione opciones válidas")
                 return
+            
+            subject_id = self.asignaciones['subjects'][subject_idx][0]
+            career_group_id = self.asignaciones['career_groups'][career_group_idx][0]
+            software_type_id = self.asignaciones['software_types'][software_type_idx][0]
                 
             # Para la Opción 1 (nombres directos):
             if self.registrar_entrada(
                 self.docente_actual['id'],
-                self.materia_combobox.get(),  # Nombre materia
-                self.grupo_combobox.get(),    # Nombre grupo
-                self.software_combobox.get(), # Nombre software
+                subject_id,
+                career_group_id,
+                software_type_id,# Nombre software
                 int(self.total_entry.get())   # Total alumnos
             ):
                 self.datos = {
                     'docente': f"{self.docente_actual['nombre']} {self.docente_actual['apellido']}",
-                    'materia': self.materia_combobox.get(),
-                    'grupo': self.grupo_combobox.get(),
-                    'software': self.software_combobox.get(),
+                    'materia': self.subject_combobox.get(),
+                    'grupo': self.career_group_combobox.get(),
+                    'software': self.software_type_combobox.get(),
                     'total': self.total_entry.get(),
                     'fecha': datetime.now().strftime("%d/%m/%Y"),
                     'hora': datetime.now().strftime("%H:%M")
