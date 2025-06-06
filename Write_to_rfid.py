@@ -1,3 +1,4 @@
+#script para reescribir en una tarjeta rfid (no se borra por completo se queda el id de la terjeta)
 from mfrc522 import SimpleMFRC522
 
 reader = SimpleMFRC522()

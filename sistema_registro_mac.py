@@ -1,3 +1,4 @@
+#script sin conexion a la base de datos
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
